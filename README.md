@@ -1,65 +1,76 @@
-# Addition Fun!
+# ArtifactBin Template Project
 
-A fun and interactive addition game for kids with visual aids and multiple choice answers. Built with React, TypeScript, and Tailwind CSS.
+Welcome to the ArtifactBin template project! This repository serves as a starting point for deploying React components created on [ArtifactBin.com](https://artifactbin.com) to Vercel.
 
-## Features
+## Overview
 
-- Visual mode with animated circles for better understanding
-- Number mode for traditional learning
-- Multiple choice answers
-- Progressive difficulty levels
-- Score tracking and streaks
-- Confetti celebration for correct answers
-- Mobile-friendly design
+This template project is designed to work seamlessly with ArtifactBin.com, allowing you to quickly deploy your React components to Vercel with just a few clicks. The project structure is set up to accommodate the React component you create on ArtifactBin.com.
 
-## Getting Started
+## Project Structure
 
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm (v6 or higher)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/addition-game.git
-cd addition-game
+```
+/
+├── app/
+│   └── page.tsx    # Your React component will be placed here
+├── public/
+│   └── ...         # Static assets
+├── .gitignore
+├── next.config.js
+├── package.json
+├── README.md
+└── tsconfig.json
 ```
 
+# Usage
+
+1. Clone this repository or use it as a template.
+2. Replace the content in src/app/page.tsx with your React component from ArtifactBin.
+3. Deploy to Vercel using the button above.
+
+For more detailed instructions, visit [ArtifactBin.com](https://artifactbin.com).
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/)
+
+## Customization
+
+After deployment, you can further customize your project by cloning it from Vercel and making additional changes. Some ideas for customization:
+
+- Add more pages or components
+- Customize the layout in `app/layout.tsx`
+- Add global styles in `app/globals.css`
+- Configure Next.js options in `next.config.js`
+
+## Requirements
+
+This template project uses:
+
+- [Next.js 14](https://nextjs.org/)
+- [React 18](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+
+## Local Development
+
+If you want to run this project locally:
+
+1. Clone the repository
 2. Install dependencies:
-```bash
-npm install
-```
+   ```
+   npm install
+   ```
+3. Run the development server:
+   ```
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-3. Start the development server:
-```bash
-npm start
-```
+## Contributing
 
-The app will open in your default browser at `http://localhost:3000`.
+We welcome contributions to improve this template project! Please feel free to submit issues or pull requests.
 
-### Building for Production
+## Support
 
-To create a production build:
+If you encounter any problems or have questions, please file an issue on the [ArtifactBin GitHub repository](https://github.com/artifactbin/template-project/issues) or contact support@artifactbin.com.
 
-```bash
-npm run build
-```
+## License
 
-The build files will be created in the `build` directory.
-
-## How to Play
-
-1. Choose between Visual Mode and Number Mode
-2. Solve addition problems by selecting the correct answer from multiple choices
-3. Build up your streak to advance to higher levels
-4. Watch for the confetti celebration when you get the answer right!
-
-## Technologies Used
-
-- React
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-- Confetti-js
+This template project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
