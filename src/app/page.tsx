@@ -60,20 +60,30 @@ export default function AdditionGame() {
   
   // Function to check Anki connection
   const checkAnkiConnection = async () => {
+    console.log('Checking Anki connection...');
+    
+    // Check if we're running on localhost
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
     // Try browser extension first
-    if (window.ankiBridge) {
+    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
       try {
+        console.log('Using browser extension...');
         const response = await window.ankiBridge.checkConnection();
+        console.log('Browser extension response:', response);
         setAnkiConnected(response.success);
         return response.success;
       } catch (error) {
         console.error('Error with browser extension:', error);
       }
+    } else {
+      console.log('Browser extension not found');
     }
 
     // Fallback to direct connection if running locally
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (isLocalhost) {
       try {
+        console.log('Trying direct connection...');
         const response = await fetch('http://localhost:8765', {
           method: 'POST',
           headers: {
@@ -91,8 +101,6 @@ export default function AdditionGame() {
         return connected;
       } catch (error) {
         console.error('Error connecting to Anki:', error);
-        setAnkiConnected(false);
-        return false;
       }
     }
 
@@ -102,24 +110,28 @@ export default function AdditionGame() {
   
   // Function to save a card to Anki
   const saveCardToAnki = async (front: string, back: string): Promise<void> => {
+    console.log('Saving card to Anki:', { front, back });
+    
     // Try browser extension first
-    if (window.ankiBridge) {
+    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
       try {
+        console.log('Using browser extension to save card...');
         const response = await window.ankiBridge.saveCard({
           front,
           back,
           level: difficulty
         });
         
+        console.log('Save card response:', response);
         if (response.success) {
-          setFeedback('Saved to Anki! 🎉');
+          setFeedback(prev => prev + ' Saved to Anki! 🎉');
         } else {
-          console.error('Anki error:', response.data?.error);
-          setFeedback('Failed to save to Anki');
+          console.error('Failed to save to Anki:', response.data?.error);
+          setFeedback(prev => prev + ' Failed to save to Anki.');
         }
         return;
       } catch (error) {
-        console.error('Error with browser extension:', error);
+        console.error('Error saving with browser extension:', error);
       }
     }
 
@@ -167,20 +179,26 @@ export default function AdditionGame() {
         const data = await response.json();
         if (data && data.error) {
           console.error('Anki error:', data.error);
-          setFeedback('Failed to save to Anki');
+          setFeedback(prev => prev + ' Failed to save to Anki.');
         } else {
-          setFeedback('Saved to Anki! 🎉');
+          setFeedback(prev => prev + ' Saved to Anki! 🎉');
         }
       } catch (error) {
         console.error('Error saving to Anki:', error);
-        setFeedback('Failed to save to Anki');
+        setFeedback(prev => prev + ' Failed to save to Anki.');
       }
     }
   };
   
-  // Check Anki connection on component mount
+  // Check Anki connection on component mount and periodically
   useEffect(() => {
-    checkAnkiConnection();
+    const checkConnection = async () => {
+      await checkAnkiConnection();
+    };
+    
+    checkConnection();
+    const interval = setInterval(checkConnection, 5000);
+    return () => clearInterval(interval);
   }, []);
   
   // Generate answer choices
