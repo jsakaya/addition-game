@@ -9,6 +9,8 @@
   ],
   "host_permissions": [
     "http://localhost:8765/*",
+    "http://localhost:3000/*",
+    "http://localhost:3001/*",
     "https://subtle-daifuku-10602c.netlify.app/*"
   ],
   "background": {
@@ -16,7 +18,11 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://subtle-daifuku-10602c.netlify.app/*"],
+      "matches": [
+        "http://localhost:3000/*",
+        "http://localhost:3001/*",
+        "https://subtle-daifuku-10602c.netlify.app/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_start"
     }

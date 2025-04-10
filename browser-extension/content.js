@@ -41,10 +41,23 @@ const createAnkiBridge = () => {
   console.log('Anki bridge created and ready');
 };
 
+// Check if the origin is allowed
+const isAllowedOrigin = (origin) => {
+  const allowedOrigins = [
+    'https://subtle-daifuku-10602c.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ];
+  return allowedOrigins.includes(origin);
+};
+
 // Listen for messages from the webpage
 window.addEventListener('message', async (event) => {
-  // Only accept messages from our webpage
-  if (event.origin !== 'https://subtle-daifuku-10602c.netlify.app') return;
+  // Only accept messages from allowed origins
+  if (!isAllowedOrigin(event.origin)) {
+    console.log('Ignoring message from unauthorized origin:', event.origin);
+    return;
+  }
 
   console.log('Received message:', event.data);
 
@@ -58,7 +71,7 @@ window.addEventListener('message', async (event) => {
       type: 'ANKI_CONNECTION_STATUS',
       success: response.success,
       data: response.data
-    }, '*');
+    }, event.origin);
   }
 
   if (event.data.type === 'ANKI_SAVE_CARD') {
@@ -72,9 +85,10 @@ window.addEventListener('message', async (event) => {
       type: 'ANKI_SAVE_RESULT',
       success: response.success,
       data: response.data
-    }, '*');
+    }, event.origin);
   }
 });
 
 // Create the bridge when the content script loads
+console.log('Content script loaded, creating bridge...');
 createAnkiBridge(); 
