@@ -195,35 +195,47 @@ export default function AdditionGame() {
   
   // Check Anki connection on component mount and periodically
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
     const checkConnection = async () => {
+      console.log('Attempting connection check...');
       await checkAnkiConnection();
     };
 
-    // Listen for the bridge becoming available
+    // Listener for when the content script makes the bridge available
     const handleBridgeReady = () => {
-      console.log('Anki bridge is ready');
-      checkConnection();
+      console.log('Event: ankiBridgeReady received.');
+      checkConnection(); // Check connection now that bridge is ready
+      if (!intervalId) {
+        intervalId = setInterval(checkConnection, 5000);
+      }
     };
 
-    // Check if bridge is already available
+    window.addEventListener('ankiBridgeReady', handleBridgeReady);
+    console.log('Event listener for ankiBridgeReady added.');
+
+    // Check if bridge is already available when the component mounts
     if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
-      console.log('Anki bridge found on load');
-      checkConnection();
+      console.log('Anki bridge found immediately on component mount.');
+      checkConnection(); // Check connection immediately
+      if (!intervalId) {
+        intervalId = setInterval(checkConnection, 5000);
+      }
+    } else {
+      console.log('Anki bridge not found immediately. Waiting for ankiBridgeReady event...');
+      // Optionally, start the interval anyway, it will just fail until the bridge is ready
+      // intervalId = setInterval(checkConnection, 5000); 
     }
 
-    // Listen for bridge becoming available
-    window.addEventListener('ankiBridgeReady', handleBridgeReady);
-    
-    // Start periodic checking
-    checkConnection();
-    const interval = setInterval(checkConnection, 5000);
-
-    // Cleanup
+    // Cleanup function
     return () => {
-      clearInterval(interval);
+      console.log('Cleaning up Anki connection checks.');
       window.removeEventListener('ankiBridgeReady', handleBridgeReady);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
   
   // Generate answer choices
   const generateChoices = (answer: number): number[] => {
