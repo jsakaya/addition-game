@@ -34,7 +34,7 @@ const AdditionGame = () => {
   // Initialize the game
   useEffect(() => {
     generateProblem();
-  }, [difficulty, gameMode]);
+  }, [difficulty, gameMode, generateProblem]);
   
   // Handle answer submission
   const checkAnswer = () => {
