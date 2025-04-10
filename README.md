@@ -1,12 +1,65 @@
-# React + Vite
+# Addition Fun!
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fun and interactive addition game for kids with visual aids and multiple choice answers. Built with React, TypeScript, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Visual mode with animated circles for better understanding
+- Number mode for traditional learning
+- Multiple choice answers
+- Progressive difficulty levels
+- Score tracking and streaks
+- Confetti celebration for correct answers
+- Mobile-friendly design
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm (v6 or higher)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/addition-game.git
+cd addition-game
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm start
+```
+
+The app will open in your default browser at `http://localhost:3000`.
+
+### Building for Production
+
+To create a production build:
+
+```bash
+npm run build
+```
+
+The build files will be created in the `build` directory.
+
+## How to Play
+
+1. Choose between Visual Mode and Number Mode
+2. Solve addition problems by selecting the correct answer from multiple choices
+3. Build up your streak to advance to higher levels
+4. Watch for the confetti celebration when you get the answer right!
+
+## Technologies Used
+
+- React
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Confetti-js
