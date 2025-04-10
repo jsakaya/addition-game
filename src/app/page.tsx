@@ -88,6 +88,7 @@ export default function AdditionGame() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Origin': window.location.origin,
           },
           body: JSON.stringify({
             action: 'requestPermission',
@@ -143,6 +144,7 @@ export default function AdditionGame() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Origin': window.location.origin,
           },
           body: JSON.stringify({
             action: 'createDeck',
@@ -158,6 +160,7 @@ export default function AdditionGame() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Origin': window.location.origin,
           },
           body: JSON.stringify({
             action: 'addNote',
