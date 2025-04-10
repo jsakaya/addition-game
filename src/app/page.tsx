@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 
+declare global {
+  interface Window {
+    ankiBridge?: {
+      checkConnection: () => Promise<{ success: boolean }>;
+      saveCard: (card: { front: string; back: string; level: number }) => Promise<{
+        success: boolean;
+        data?: { error?: string };
+      }>;
+    };
+  }
+}
+
 type GameMode = 'visual' | 'numbers';
 
 export default function AdditionGame() {
@@ -19,6 +31,13 @@ export default function AdditionGame() {
   const [ankiConnected, setAnkiConnected] = useState<boolean>(false);
   const [saveToAnki, setSaveToAnki] = useState<boolean>(false);
   const [choices, setChoices] = useState<number[]>([]);
+  const [isLocalhost, setIsLocalhost] = useState<boolean>(true);
+  
+  // Check if running on localhost
+  useEffect(() => {
+    const host = window.location.hostname;
+    setIsLocalhost(host === 'localhost' || host === '127.0.0.1');
+  }, []);
   
   // Generate new problem
   const generateProblem = () => {
@@ -41,69 +60,121 @@ export default function AdditionGame() {
   
   // Function to check Anki connection
   const checkAnkiConnection = async () => {
-    try {
-      const response = await fetch('http://localhost:8765', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'requestPermission',
-          version: 6,
-        }),
-      });
-      
-      const data = await response.json();
-      if (data && data.permission === 'granted') {
-        setAnkiConnected(true);
-        return true;
-      } else {
+    // Try browser extension first
+    if (window.ankiBridge) {
+      try {
+        const response = await window.ankiBridge.checkConnection();
+        setAnkiConnected(response.success);
+        return response.success;
+      } catch (error) {
+        console.error('Error with browser extension:', error);
+      }
+    }
+
+    // Fallback to direct connection if running locally
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try {
+        const response = await fetch('http://localhost:8765', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'requestPermission',
+            version: 6,
+          }),
+        });
+        
+        const data = await response.json();
+        const connected = data.result && data.result.permission === 'granted';
+        setAnkiConnected(connected);
+        return connected;
+      } catch (error) {
+        console.error('Error connecting to Anki:', error);
         setAnkiConnected(false);
         return false;
       }
-    } catch (error) {
-      console.error('Error connecting to Anki:', error);
-      setAnkiConnected(false);
-      return false;
     }
+
+    setAnkiConnected(false);
+    return false;
   };
   
   // Function to save a card to Anki
   const saveCardToAnki = async (front: string, back: string): Promise<void> => {
-    if (!ankiConnected) {
-      const connected = await checkAnkiConnection();
-      if (!connected) return;
-    }
-    
-    try {
-      const response = await fetch('http://localhost:8765', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'addNote',
-          version: 6,
-          params: {
-            note: {
-              deckName: 'Math Addition',
-              modelName: 'Basic',
-              fields: {
-                Front: front,
-                Back: back
-              },
-              tags: ['addition-game', `level-${difficulty}`]
-            }
-          }
-        }),
-      });
-      
-      const data = await response.json();
-      if (data && data.error) {
-        console.error('Anki error:', data.error);
+    // Try browser extension first
+    if (window.ankiBridge) {
+      try {
+        const response = await window.ankiBridge.saveCard({
+          front,
+          back,
+          level: difficulty
+        });
+        
+        if (response.success) {
+          setFeedback('Saved to Anki! 🎉');
+        } else {
+          console.error('Anki error:', response.data?.error);
+          setFeedback('Failed to save to Anki');
+        }
+        return;
+      } catch (error) {
+        console.error('Error with browser extension:', error);
       }
-    } catch (error) {
-      console.error('Error saving to Anki:', error);
+    }
+
+    // Fallback to direct connection if running locally
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try {
+        // Create deck
+        await fetch('http://localhost:8765', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'createDeck',
+            version: 6,
+            params: {
+              deck: 'Addition'
+            }
+          }),
+        });
+
+        // Add note
+        const response = await fetch('http://localhost:8765', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'addNote',
+            version: 6,
+            params: {
+              note: {
+                deckName: 'Addition',
+                modelName: 'Basic',
+                fields: {
+                  Front: front,
+                  Back: back
+                },
+                tags: ['addition-game', `level-${difficulty}`]
+              }
+            }
+          }),
+        });
+        
+        const data = await response.json();
+        if (data && data.error) {
+          console.error('Anki error:', data.error);
+          setFeedback('Failed to save to Anki');
+        } else {
+          setFeedback('Saved to Anki! 🎉');
+        }
+      } catch (error) {
+        console.error('Error saving to Anki:', error);
+        setFeedback('Failed to save to Anki');
+      }
     }
   };
   
@@ -147,6 +218,13 @@ export default function AdditionGame() {
       setScore(score + 1);
       setStreak(streak + 1);
       setShowConfetti(true);
+      
+      // Save to Anki if enabled
+      if (saveToAnki) {
+        const front = `${num1} + ${num2} = ?`;
+        const back = `${correctAnswer}`;
+        saveCardToAnki(front, back);
+      }
       
       // After 1.5 seconds, hide confetti and generate new problem
       setTimeout(() => {
@@ -192,19 +270,41 @@ export default function AdditionGame() {
       <div className="p-6 max-w-lg mx-auto bg-blue-50 rounded-xl shadow-md">
         <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">Addition Fun!</h1>
         
-        <div className="flex justify-center mb-4 space-x-4">
-          <button 
-            className={`px-4 py-2 rounded-full ${gameMode === 'visual' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            onClick={() => setGameMode('visual')}
-          >
-            Visual Mode
-          </button>
-          <button 
-            className={`px-4 py-2 rounded-full ${gameMode === 'numbers' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            onClick={() => setGameMode('numbers')}
-          >
-            Number Mode
-          </button>
+        {!isLocalhost && (
+          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+            <p className="font-medium">Anki integration is only available when running locally.</p>
+            <p className="text-sm">To use Anki integration, please run this app on your local computer.</p>
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex space-x-4">
+            <button 
+              className={`px-4 py-2 rounded-full ${gameMode === 'visual' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              onClick={() => setGameMode('visual')}
+            >
+              Visual Mode
+            </button>
+            <button 
+              className={`px-4 py-2 rounded-full ${gameMode === 'numbers' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              onClick={() => setGameMode('numbers')}
+            >
+              Number Mode
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={saveToAnki}
+                onChange={(e) => setSaveToAnki(e.target.checked)}
+                className="mr-2"
+              />
+              Save to Anki
+            </label>
+            <div className={`w-2 h-2 rounded-full ${ankiConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+          </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-inner mb-6">

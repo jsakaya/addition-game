@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Addition Game Anki Bridge",
+  "version": "1.0",
+  "description": "Bridge between Addition Game and local Anki",
+  "permissions": [
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost:8765/*",
+    "https://subtle-daifuku-10602c.netlify.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://subtle-daifuku-10602c.netlify.app/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  }
+} 
