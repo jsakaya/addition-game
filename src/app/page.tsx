@@ -3,18 +3,6 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 
-declare global {
-  interface Window {
-    ankiBridge?: {
-      checkConnection: () => Promise<{ success: boolean }>;
-      saveCard: (card: { front: string; back: string; level: number }) => Promise<{
-        success: boolean;
-        data?: { error?: string };
-      }>;
-    };
-  }
-}
-
 type GameMode = 'visual' | 'numbers';
 
 export default function AdditionGame() {
@@ -31,13 +19,6 @@ export default function AdditionGame() {
   const [ankiConnected, setAnkiConnected] = useState<boolean>(false);
   const [saveToAnki, setSaveToAnki] = useState<boolean>(false);
   const [choices, setChoices] = useState<number[]>([]);
-  const [isLocalhost, setIsLocalhost] = useState<boolean>(true);
-  
-  // Check if running on localhost
-  useEffect(() => {
-    const host = window.location.hostname;
-    setIsLocalhost(host === 'localhost' || host === '127.0.0.1');
-  }, []);
   
   // Generate new problem
   const generateProblem = () => {
@@ -60,182 +41,115 @@ export default function AdditionGame() {
   
   // Function to check Anki connection
   const checkAnkiConnection = async () => {
-    console.log('Checking Anki connection...');
-    
-    // Check if we're running on localhost
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    // Try browser extension first
-    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
-      try {
-        console.log('Using browser extension...');
-        const response = await window.ankiBridge.checkConnection();
-        console.log('Browser extension response:', response);
-        setAnkiConnected(response.success);
-        return response.success;
-      } catch (error) {
-        console.error('Error with browser extension:', error);
-      }
-    } else {
-      console.log('Browser extension not found');
-    }
+    console.log('Attempting to connect to Anki...');
+    try {
+      const response = await fetch('http://localhost:8765', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'requestPermission',
+          version: 6,
+        }),
+      });
+      
+      console.log('Anki response:', response);
+      const data = await response.json();
+      console.log('Anki data:', data);
 
-    // Fallback to direct connection if running locally
-    if (isLocalhost) {
-      try {
-        console.log('Trying direct connection...');
-        const response = await fetch('http://localhost:8765', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Origin': window.location.origin,
-          },
-          body: JSON.stringify({
-            action: 'requestPermission',
-            version: 6,
-          }),
-        });
-        
-        const data = await response.json();
-        const connected = data.result && data.result.permission === 'granted';
-        setAnkiConnected(connected);
-        return connected;
-      } catch (error) {
-        console.error('Error connecting to Anki:', error);
+      if (data.result && data.result.permission === 'granted') {
+        console.log('Successfully connected to Anki!');
+        setAnkiConnected(true);
+        return true;
+      } else {
+        console.log('Failed to get permission from Anki');
+        setAnkiConnected(false);
+        return false;
       }
+    } catch (error) {
+      console.error('Error connecting to Anki:', error);
+      setAnkiConnected(false);
+      return false;
     }
-
-    setAnkiConnected(false);
-    return false;
   };
   
   // Function to save a card to Anki
   const saveCardToAnki = async (front: string, back: string): Promise<void> => {
-    console.log('Saving card to Anki:', { front, back });
-    
-    // Try browser extension first
-    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
-      try {
-        console.log('Using browser extension to save card...');
-        const response = await window.ankiBridge.saveCard({
-          front,
-          back,
-          level: difficulty
-        });
-        
-        console.log('Save card response:', response);
-        if (response.success) {
-          setFeedback(prev => prev + ' Saved to Anki! 🎉');
-        } else {
-          console.error('Failed to save to Anki:', response.data?.error);
-          setFeedback(prev => prev + ' Failed to save to Anki.');
-        }
+    console.log('Attempting to save card to Anki...', { front, back });
+    if (!ankiConnected) {
+      console.log('Not connected to Anki, attempting to connect...');
+      const connected = await checkAnkiConnection();
+      if (!connected) {
+        console.log('Failed to connect to Anki, cannot save card');
         return;
-      } catch (error) {
-        console.error('Error saving with browser extension:', error);
       }
     }
+    
+    try {
+      // First, create the deck if it doesn't exist
+      console.log('Creating deck "Addition" if it doesn\'t exist...');
+      const createDeckResponse = await fetch('http://localhost:8765', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'createDeck',
+          version: 6,
+          params: {
+            deck: 'Addition'
+          }
+        }),
+      });
+      
+      const createDeckData = await createDeckResponse.json();
+      console.log('Create deck response:', createDeckData);
 
-    // Fallback to direct connection if running locally
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      try {
-        // Create deck
-        await fetch('http://localhost:8765', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Origin': window.location.origin,
-          },
-          body: JSON.stringify({
-            action: 'createDeck',
-            version: 6,
-            params: {
-              deck: 'Addition'
+      // Then add the note to the deck
+      console.log('Adding note to deck...');
+      const response = await fetch('http://localhost:8765', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'addNote',
+          version: 6,
+          params: {
+            note: {
+              deckName: 'Addition',
+              modelName: 'Basic',
+              fields: {
+                Front: front,
+                Back: back
+              },
+              tags: ['addition-game', `level-${difficulty}`]
             }
-          }),
-        });
+          }
+        }),
+      });
+      
+      const data = await response.json();
+      console.log('Add note response:', data);
 
-        // Add note
-        const response = await fetch('http://localhost:8765', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Origin': window.location.origin,
-          },
-          body: JSON.stringify({
-            action: 'addNote',
-            version: 6,
-            params: {
-              note: {
-                deckName: 'Addition',
-                modelName: 'Basic',
-                fields: {
-                  Front: front,
-                  Back: back
-                },
-                tags: ['addition-game', `level-${difficulty}`]
-              }
-            }
-          }),
-        });
-        
-        const data = await response.json();
-        if (data && data.error) {
-          console.error('Anki error:', data.error);
-          setFeedback(prev => prev + ' Failed to save to Anki.');
-        } else {
-          setFeedback(prev => prev + ' Saved to Anki! 🎉');
-        }
-      } catch (error) {
-        console.error('Error saving to Anki:', error);
-        setFeedback(prev => prev + ' Failed to save to Anki.');
+      if (data && data.error) {
+        console.error('Anki error:', data.error);
+        setFeedback('Failed to save to Anki');
+      } else {
+        console.log('Successfully saved card to Anki!');
+        setFeedback('Saved to Anki! 🎉');
       }
+    } catch (error) {
+      console.error('Error saving to Anki:', error);
+      setFeedback('Failed to save to Anki');
     }
   };
   
-  // Check Anki connection on component mount and periodically
+  // Check Anki connection on component mount
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-
-    const checkConnection = async () => {
-      console.log('Attempting connection check...');
-      await checkAnkiConnection();
-    };
-
-    // Listener for when the content script makes the bridge available
-    const handleBridgeReady = () => {
-      console.log('Event: ankiBridgeReady received.');
-      checkConnection(); // Check connection now that bridge is ready
-      if (!intervalId) {
-        intervalId = setInterval(checkConnection, 5000);
-      }
-    };
-
-    window.addEventListener('ankiBridgeReady', handleBridgeReady);
-    console.log('Event listener for ankiBridgeReady added.');
-
-    // Check if bridge is already available when the component mounts
-    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
-      console.log('Anki bridge found immediately on component mount.');
-      checkConnection(); // Check connection immediately
-      if (!intervalId) {
-        intervalId = setInterval(checkConnection, 5000);
-      }
-    } else {
-      console.log('Anki bridge not found immediately. Waiting for ankiBridgeReady event...');
-      // Optionally, start the interval anyway, it will just fail until the bridge is ready
-      // intervalId = setInterval(checkConnection, 5000); 
-    }
-
-    // Cleanup function
-    return () => {
-      console.log('Cleaning up Anki connection checks.');
-      window.removeEventListener('ankiBridgeReady', handleBridgeReady);
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount
+    checkAnkiConnection();
+  }, []);
   
   // Generate answer choices
   const generateChoices = (answer: number): number[] => {
@@ -323,13 +237,6 @@ export default function AdditionGame() {
     <main className="min-h-screen bg-gray-100">
       <div className="p-6 max-w-lg mx-auto bg-blue-50 rounded-xl shadow-md">
         <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">Addition Fun!</h1>
-        
-        {!isLocalhost && (
-          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <p className="font-medium">Anki integration is only available when running locally.</p>
-            <p className="text-sm">To use Anki integration, please run this app on your local computer.</p>
-          </div>
-        )}
         
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-4">
