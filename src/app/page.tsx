@@ -19,6 +19,34 @@ export default function AdditionGame() {
   const [ankiConnected, setAnkiConnected] = useState<boolean>(false);
   const [saveToAnki, setSaveToAnki] = useState<boolean>(false);
   const [choices, setChoices] = useState<number[]>([]);
+  const [isClient, setIsClient] = useState<boolean>(false);
+  
+  // Set isClient to true once the component mounts
+  useEffect(() => {
+    setIsClient(true);
+    // Generate initial problem
+    generateProblem();
+  }, []);
+  
+  // Function to read math problem aloud
+  const readProblem = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      // Create the text to be read
+      const text = `${num1} plus ${num2} equals?`;
+      
+      // Create a SpeechSynthesisUtterance instance
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Set properties (optional)
+      utterance.rate = 0.9; // slightly slower
+      utterance.pitch = 1;
+      
+      // Speak the text
+      window.speechSynthesis.speak(utterance);
+    } else {
+      console.log('Text-to-speech not supported in this browser');
+    }
+  };
   
   // Generate new problem
   const generateProblem = () => {
@@ -219,16 +247,36 @@ export default function AdditionGame() {
   
   // Visual representation of numbers using circles
   const renderCircles = (number: number, color: string): JSX.Element[] => {
-    const circles = [];
+    const circles: JSX.Element[] = [];
+    // Determine circle size based on the number
+    let circleSizeClass = 'w-8 h-8'; // Default size
+    if (number > 10 && number <= 15) {
+      circleSizeClass = 'w-6 h-6'; // Medium size
+    } else if (number > 15) {
+      circleSizeClass = 'w-4 h-4'; // Small size
+    }
+
     for (let i = 0; i < number; i++) {
-      // Add margin right for grouping (after each 5th element except the last one)
       const isGroupBreak = (i + 1) % 5 === 0 && i !== number - 1;
       circles.push(
         <div 
-          key={i} 
-          className={`w-8 h-8 rounded-full ${color} mx-1 ${isGroupBreak ? 'mr-4' : ''} inline-block`}
+          key={`circle-${i}`}
+          className={`${circleSizeClass} rounded-full ${color} mx-1 inline-flex justify-center items-center`}
         />
       );
+      
+      // Add separator after every 5 circles
+      if (isGroupBreak) {
+        circles.push(
+          <div 
+            key={`sep-${i}`} 
+            className="mx-1 inline-flex justify-center items-center"
+            style={{ height: circleSizeClass === 'w-8 h-8' ? '2rem' : circleSizeClass === 'w-6 h-6' ? '1.5rem' : '1rem' }}
+          >
+            <span className="text-gray-400 font-bold">|</span>
+          </div>
+        );
+      }
     }
     return circles;
   };
@@ -254,40 +302,38 @@ export default function AdditionGame() {
             </button>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={saveToAnki}
-                onChange={(e) => setSaveToAnki(e.target.checked)}
-                className="mr-2"
-              />
-              Save to Anki
-            </label>
-            <div className={`w-2 h-2 rounded-full ${ankiConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          </div>
+          {isClient && (
+            <button
+              onClick={readProblem}
+              className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-colors"
+              title="Read problem aloud"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-inner mb-6">
           {/* Visual representation */}
           {gameMode === 'visual' && (
-            <div className="flex flex-col justify-center items-center mb-4">
-              <div className="flex justify-center items-center mb-2">
-                <div className="flex flex-wrap justify-center items-center">
+            <div className="flex flex-col justify-center items-center mb-4 space-y-3 overflow-x-auto">
+              <div className="flex justify-center items-center w-full">
+                <div className="flex-shrink-0 whitespace-nowrap">
                   {renderCircles(num1, 'bg-red-400')}
                 </div>
               </div>
-              <div className="flex items-center mb-2">
-                <div className="text-2xl mr-2">+</div>
+              <div className="flex justify-center items-center w-full">
+                <div className="text-3xl font-medium text-gray-600">+</div>
               </div>
-              <div className="flex justify-center items-center mb-2">
-                <div className="flex flex-wrap justify-center items-center">
+              <div className="flex justify-center items-center w-full">
+                <div className="flex-shrink-0 whitespace-nowrap">
                   {renderCircles(num2, 'bg-blue-400')}
                 </div>
               </div>
-              <div className="flex items-center">
-                <div className="text-2xl mr-2">=</div>
-                <div className="text-2xl">?</div>
+              <div className="flex justify-center items-center w-full">
+                <div className="text-3xl font-medium text-gray-600">=</div>
               </div>
             </div>
           )}
