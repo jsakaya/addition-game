@@ -195,10 +195,31 @@ export default function AdditionGame() {
     const checkConnection = async () => {
       await checkAnkiConnection();
     };
+
+    // Listen for the bridge becoming available
+    const handleBridgeReady = () => {
+      console.log('Anki bridge is ready');
+      checkConnection();
+    };
+
+    // Check if bridge is already available
+    if (typeof window !== 'undefined' && 'ankiBridge' in window && window.ankiBridge) {
+      console.log('Anki bridge found on load');
+      checkConnection();
+    }
+
+    // Listen for bridge becoming available
+    window.addEventListener('ankiBridgeReady', handleBridgeReady);
     
+    // Start periodic checking
     checkConnection();
     const interval = setInterval(checkConnection, 5000);
-    return () => clearInterval(interval);
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ankiBridgeReady', handleBridgeReady);
+    };
   }, []);
   
   // Generate answer choices

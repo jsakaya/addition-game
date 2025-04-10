@@ -1,36 +1,7 @@
-// Listen for messages from the webpage
-window.addEventListener('message', async (event) => {
-  // Only accept messages from our webpage
-  if (event.origin !== 'https://subtle-daifuku-10602c.netlify.app') return;
-
-  if (event.data.type === 'ANKI_CHECK_CONNECTION') {
-    const response = await chrome.runtime.sendMessage({
-      action: 'checkAnkiConnection'
-    });
-    window.postMessage({
-      type: 'ANKI_CONNECTION_STATUS',
-      success: response.success,
-      data: response.data
-    }, '*');
-  }
-
-  if (event.data.type === 'ANKI_SAVE_CARD') {
-    const response = await chrome.runtime.sendMessage({
-      action: 'saveCard',
-      data: event.data.card
-    });
-    window.postMessage({
-      type: 'ANKI_SAVE_RESULT',
-      success: response.success,
-      data: response.data
-    }, '*');
-  }
-});
-
-// Inject a script to handle communication
-const script = document.createElement('script');
-script.textContent = `
-  window.ankiBridge = {
+// Create a bridge object to handle communication between the webpage and the extension
+const createAnkiBridge = () => {
+  console.log('Creating Anki bridge...');
+  const bridge = {
     checkConnection: () => {
       return new Promise((resolve) => {
         const handler = (event) => {
@@ -60,5 +31,50 @@ script.textContent = `
       });
     }
   };
-`;
-document.documentElement.appendChild(script); 
+
+  // Inject the bridge into the webpage
+  window.ankiBridge = bridge;
+  
+  // Dispatch an event to notify the webpage that the bridge is ready
+  const event = new CustomEvent('ankiBridgeReady', { detail: bridge });
+  window.dispatchEvent(event);
+  console.log('Anki bridge created and ready');
+};
+
+// Listen for messages from the webpage
+window.addEventListener('message', async (event) => {
+  // Only accept messages from our webpage
+  if (event.origin !== 'https://subtle-daifuku-10602c.netlify.app') return;
+
+  console.log('Received message:', event.data);
+
+  if (event.data.type === 'ANKI_CHECK_CONNECTION') {
+    console.log('Checking Anki connection...');
+    const response = await chrome.runtime.sendMessage({
+      action: 'checkAnkiConnection'
+    });
+    console.log('Anki connection response:', response);
+    window.postMessage({
+      type: 'ANKI_CONNECTION_STATUS',
+      success: response.success,
+      data: response.data
+    }, '*');
+  }
+
+  if (event.data.type === 'ANKI_SAVE_CARD') {
+    console.log('Saving card:', event.data.card);
+    const response = await chrome.runtime.sendMessage({
+      action: 'saveCard',
+      data: event.data.card
+    });
+    console.log('Save card response:', response);
+    window.postMessage({
+      type: 'ANKI_SAVE_RESULT',
+      success: response.success,
+      data: response.data
+    }, '*');
+  }
+});
+
+// Create the bridge when the content script loads
+createAnkiBridge(); 

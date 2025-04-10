@@ -17,11 +17,15 @@
   "content_scripts": [
     {
       "matches": ["https://subtle-daifuku-10602c.netlify.app/*"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_start"
     }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 } 
