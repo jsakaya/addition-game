@@ -29,7 +29,7 @@ const AdditionGame = () => {
     setUserAnswer('');
     setFeedback('');
     setShowHint(false);
-  }, [difficulty]);
+  }, [difficulty, gameMode]);
   
   // Initialize the game
   useEffect(() => {
