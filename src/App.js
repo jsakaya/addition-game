@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const AdditionGame = () => {
   const [num1, setNum1] = useState(1);
@@ -13,7 +13,7 @@ const AdditionGame = () => {
   const [showHint, setShowHint] = useState(false);
   
   // Generate new problem
-  const generateProblem = () => {
+  const generateProblem = useCallback(() => {
     let max = difficulty === 1 ? 5 : difficulty === 2 ? 10 : 20;
     let newNum1 = Math.floor(Math.random() * max) + 1;
     let newNum2 = Math.floor(Math.random() * max) + 1;
@@ -29,7 +29,7 @@ const AdditionGame = () => {
     setUserAnswer('');
     setFeedback('');
     setShowHint(false);
-  };
+  }, [difficulty]);
   
   // Initialize the game
   useEffect(() => {
